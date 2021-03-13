@@ -95,8 +95,8 @@ void setup() {
 
   if (!DEBUG) {
     // Print a message to the LCD.
-    showTitleScreen("Antenna Analyzer");
-    delay(3000);
+    showTitleScreen("Antenna Analyzer KC9YJP");
+    delay(2000);
   }
 
   // Configiure DDS control pins for digital output
