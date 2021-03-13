@@ -232,8 +232,8 @@ void loop() {
         lcd.setCursor(0, 0);
         delay(LCD_DELAY);
         lcd.print("160m");
-        Fstart = 1500000;
-        Fstop = 2300000;
+        Fstart = 1800000;
+        Fstop =  2000000;
         break;
       case 3:
         // 80m
@@ -241,8 +241,8 @@ void loop() {
         lcd.setCursor(0, 0);
         delay(LCD_DELAY);
         lcd.print("80m");
-        Fstart = 2000000;
-        Fstop = 5000000;
+        Fstart = 3500000;
+        Fstop =  4000000;
         break;
       case 4:
         // 60m
@@ -250,8 +250,8 @@ void loop() {
         lcd.setCursor(0, 0);
         delay(LCD_DELAY);
         lcd.print("60m");
-        Fstart = 5000000;
-        Fstop = 6000000;
+        Fstart = 5330000;
+        Fstop =  5500000;
         break;
       case 5:
         // 40m
@@ -259,8 +259,8 @@ void loop() {
         lcd.setCursor(0, 0);
         delay(LCD_DELAY);
         lcd.print("40m");
-        Fstart = 6000000;
-        Fstop = 8000000;
+        Fstart = 7000000;
+        Fstop =  7300000;
         break;
       case 6:
         // 30m
@@ -268,8 +268,8 @@ void loop() {
         lcd.setCursor(0, 0);
         delay(LCD_DELAY);
         lcd.print("30m");
-        Fstart = 9000000;
-        Fstop = 11000000;
+        Fstart = 10100000;
+        Fstop =  10150000;
         break;
       case 7:
         // 20m
@@ -277,8 +277,8 @@ void loop() {
         lcd.setCursor(0, 0);
         delay(LCD_DELAY);
         lcd.print("20m");
-        Fstart = 13000000;
-        Fstop = 16000000;
+        Fstart = 14000000;
+        Fstop =  14350000;
         break;
       case 8:
         // 17m
@@ -286,8 +286,8 @@ void loop() {
         lcd.setCursor(0, 0);
         delay(LCD_DELAY);
         lcd.print("17m");
-        Fstart = 17000000;
-        Fstop = 19000000;
+        Fstart = 18000000;
+        Fstop =  18170000;
         break;
       case 9:
         // 15m
@@ -295,8 +295,8 @@ void loop() {
         lcd.setCursor(0, 0);
         delay(LCD_DELAY);
         lcd.print("15m");
-        Fstart = 20000000;
-        Fstop = 23000000;
+        Fstart = 21000000;
+        Fstop =  21500000;
         break;
       case 10:
         // 12m
@@ -304,8 +304,8 @@ void loop() {
         lcd.setCursor(0, 0);
         delay(LCD_DELAY);
         lcd.print("12m");
-        Fstart = 24000000;
-        Fstop = 26000000;
+        Fstart = 24890000;
+        Fstop =  25000000;
         break;
       case 11:
         // 10m
@@ -313,8 +313,8 @@ void loop() {
         lcd.setCursor(0, 0);
         delay(LCD_DELAY);
         lcd.print("10m");
-        Fstart = 27000000;
-        Fstop = 30000000;
+        Fstart = 28000000;
+        Fstop =  29700000;
         break;
 
     }
