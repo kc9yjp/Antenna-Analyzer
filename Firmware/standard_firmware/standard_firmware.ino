@@ -47,13 +47,17 @@ unsigned long current_freq; // Temp variable used during sweep
 long serial_input_number; // Used to build number from serial stream
 long num_steps = 1001; // Number of steps to use in the sweep
 char incoming_char; // Character read from serial stream
-byte mode_pressed = 0; //indicates that mode switch was pressed
-int mode = 1; // mode setting selected
+
+// button presses
+byte mode_pressed = 0; 
 byte band_pressed = 0;
-int band = 1;
-const long buttonWait = 5000; // Length of time in milliseconds to wait for user to press the button again
-unsigned long lastPressTime;
-unsigned long currentTime;
+byte reset_pressed = 0;
+
+int mode = 0; // menu/mode setting selected
+int main_menu = 1; // start in main menu
+byte pc = 0; // serial mode on/off
+byte sweeping = 0; // actively sweeping
+byte can_re_sweep = 0;
 
 // Graph variables
 
@@ -92,12 +96,14 @@ void setup() {
   // set up the LCD's number of columns and rows:
   lcd.begin(16, 2);
   delay(LCD_DELAY);
-
-  if (!DEBUG) {
-    // Print a message to the LCD.
-    showTitleScreen("Antenna Analyzer KC9YJP");
-    delay(2000);
-  }
+  // Print a message to the LCD.
+  lcd.setCursor(0,0);
+  lcd.print("Antenna Analyzer");
+  lcd.setCursor(5, 1);
+  delay(LCD_DELAY);
+  lcd.print("KC9YJP");
+  delay(2000);
+  
 
   // Configiure DDS control pins for digital output
   pinMode(FQ_UD, OUTPUT);
@@ -119,86 +125,29 @@ void setup() {
 
   //Initialise the incoming serial number to zero
   serial_input_number = 0;
+  setup_main_menu();
+}
+
+void setup_main_menu()
+{
+  main_menu = 1;
+  // menu help
   lcd.clear();
   lcd.setCursor(0, 0);
   delay(LCD_DELAY);
-  lcd.print("1-30 MHz");
-
-  lastPressTime = millis();
-
+  lcd.print("MODE=menu next");
+  delay(LCD_DELAY);
+  lcd.setCursor(0, 1);
+  lcd.print("BAND=select");
 }
 
 void loop() {
-  //Check for character
-  if (Serial.available() > 0) {
-    mode = 0;
-    band = 0;
-    lcd.clear();
-    lcd.setCursor(14, 0);
-    delay(LCD_DELAY);
-    lcd.print("PC");
-    incoming_char = Serial.read();
-    switch (incoming_char) {
-      case '0':
-      case '1':
-      case '2':
-      case '3':
-      case '4':
-      case '5':
-      case '6':
-      case '7':
-      case '8':
-      case '9':
-        serial_input_number = serial_input_number * 10 + (incoming_char - '0');
-        break;
-      case 'A':
-        //Turn frequency into FStart
-        Fstart = serial_input_number;
-        serial_input_number = 0;
-        break;
-      case 'B':
-        //Turn frequency into FStop
-        Fstop = serial_input_number;
-        serial_input_number = 0;
-        break;
-      case 'C':
-        //Turn frequency into FStart and set DDS output to single frequency
-        Fstart = serial_input_number;
-        SetDDSFreq(Fstart);
-        serial_input_number = 0;
-        break;
-      case 'N':
-        // Set number of steps in the sweep
-        num_steps = serial_input_number;
-        serial_input_number = 0;
-        break;
-      case 'S':
-      case 's':
-        Perform_sweep();
-        break;
-      case '?':
-        // Report current configuration to PC
-        Serial.print("Start Freq:");
-        Serial.println(Fstart);
-        Serial.print("Stop Freq:");
-        Serial.println(Fstop);
-        Serial.print("Num Steps:");
-        Serial.println(num_steps);
-        break;
-    }
-    Serial.flush();
-  } else {
-    //No serial data was received
+  serial_check();
+  if (pc == 0) {
     lcd.blink();
-    currentTime = millis();
-    if (currentTime - lastPressTime >= buttonWait) {
-      lcd.noBlink();
-      if (band > 0) Perform_sweep();
-    }
-  }
-  if ((digitalRead(BAND) == LOW) or (band_pressed == 1)) {
-    while (digitalRead(BAND) == LOW) {} // Wait for the BAND button to be released for debouncing
-    lastPressTime = millis();
+  
+  if (main_menu == 1 and ((digitalRead(MODE) == LOW) or (mode_pressed == 1))) {
+    while (digitalRead(MODE) == LOW) {}
 
     // Initialize variables for new band selection
     totalVSWR = 0.0;
@@ -210,13 +159,30 @@ void loop() {
     maxDisplayedVSWR = 1.0;
     minFreq = Fstart;
     maxFreq = Fstart;
-
-    band_pressed = 0;
-    band += 1;
-    if (band == 12) band = 1;
     num_steps = 1000;
-    switch (band) {
+
+    mode_pressed = 0;
+    mode += 1;
+    if (mode == 14) mode = 1;
+    switch (mode) {
       case 1:
+        lcd.clear();
+        delay(LCD_DELAY);
+        lcd.setCursor(0, 0);
+        delay(LCD_DELAY);
+        lcd.print("Specify Range");
+        
+        break;
+
+      case 2:
+        lcd.clear();
+        delay(LCD_DELAY);
+        lcd.setCursor(0, 0);
+        delay(LCD_DELAY);
+        lcd.print("todo 2");
+        
+        break;
+      case 3:
         // Full sweep 1-30 MHz
         lcd.clear();
         delay(LCD_DELAY);
@@ -226,7 +192,7 @@ void loop() {
         Fstart = 1000000;
         Fstop = 30000000;
         break;
-      case 2:
+      case 4:
         // 160m
         lcd.clear();
         lcd.setCursor(0, 0);
@@ -235,7 +201,7 @@ void loop() {
         Fstart = 1800000;
         Fstop =  2000000;
         break;
-      case 3:
+      case 5:
         // 80m
         lcd.clear();
         lcd.setCursor(0, 0);
@@ -244,7 +210,7 @@ void loop() {
         Fstart = 3500000;
         Fstop =  4000000;
         break;
-      case 4:
+      case 6:
         // 60m
         lcd.clear();
         lcd.setCursor(0, 0);
@@ -253,7 +219,7 @@ void loop() {
         Fstart = 5330000;
         Fstop =  5500000;
         break;
-      case 5:
+      case 7:
         // 40m
         lcd.clear();
         lcd.setCursor(0, 0);
@@ -262,7 +228,7 @@ void loop() {
         Fstart = 7000000;
         Fstop =  7300000;
         break;
-      case 6:
+      case 8:
         // 30m
         lcd.clear();
         lcd.setCursor(0, 0);
@@ -271,7 +237,7 @@ void loop() {
         Fstart = 10100000;
         Fstop =  10150000;
         break;
-      case 7:
+      case 9:
         // 20m
         lcd.clear();
         lcd.setCursor(0, 0);
@@ -280,7 +246,7 @@ void loop() {
         Fstart = 14000000;
         Fstop =  14350000;
         break;
-      case 8:
+      case 10:
         // 17m
         lcd.clear();
         lcd.setCursor(0, 0);
@@ -289,7 +255,7 @@ void loop() {
         Fstart = 18000000;
         Fstop =  18170000;
         break;
-      case 9:
+      case 11:
         // 15m
         lcd.clear();
         lcd.setCursor(0, 0);
@@ -298,7 +264,7 @@ void loop() {
         Fstart = 21000000;
         Fstop =  21500000;
         break;
-      case 10:
+      case 12:
         // 12m
         lcd.clear();
         lcd.setCursor(0, 0);
@@ -307,7 +273,7 @@ void loop() {
         Fstart = 24890000;
         Fstop =  25000000;
         break;
-      case 11:
+      case 13:
         // 10m
         lcd.clear();
         lcd.setCursor(0, 0);
@@ -321,11 +287,41 @@ void loop() {
 
   }
 
-  if ((digitalRead(MODE) == LOW) or (mode_pressed == 1)) {  //mode switch was pressed
-    while (digitalRead(MODE) == LOW) {}  //Wsit for MODE button to be released for debouncing
-    lastPressTime = millis();
 
-    //Initialize variables for new mode selection
+  if (main_menu == 1 and ((digitalRead(BAND) == LOW) or (band_pressed == 1))) {  
+    while (digitalRead(BAND) == LOW) {}  
+    main_menu = 0;
+    lcd.setCursor(0,1);
+    lcd.print("...");
+    
+    if (mode == 1) {
+      adhoc_frequency();
+      }
+    else if (mode == 2)
+    {}
+    else {
+    Perform_sweep();
+    }
+  }
+
+  if (sweeping == 0 and can_re_sweep == 1 and ((digitalRead(BAND) == LOW) or (band_pressed == 1))) {  
+    while (digitalRead(BAND) == LOW) {}
+    Perform_sweep();
+  }
+  if (sweeping == 0 and can_re_sweep == 1 and ((digitalRead(MODE) == LOW) or (mode_pressed == 1))) {  
+    while (digitalRead(MODE) == LOW) {}
+    
+    can_re_sweep = 0;
+    setup_main_menu();
+    
+  }
+
+  
+  }
+}
+
+void adhoc_frequency() {
+      //Initialize variables for new mode selection
     totalVSWR = 0.0;
     avgVSWR = 0.0;
     readingsCount = 0;
@@ -385,17 +381,81 @@ void loop() {
     }
     
     Perform_sweep();
+
   }
 
+void serial_check () {
+    //Check for character
+  if (Serial.available() > 0) {
+    pc = 1;
+    mode = 0;
+    main_menu = 0;
+    lcd.clear();
+    lcd.setCursor(14, 0);
+    delay(LCD_DELAY);
+    lcd.print("PC");
+    incoming_char = Serial.read();
+    switch (incoming_char) {
+      case '0':
+      case '1':
+      case '2':
+      case '3':
+      case '4':
+      case '5':
+      case '6':
+      case '7':
+      case '8':
+      case '9':
+        serial_input_number = serial_input_number * 10 + (incoming_char - '0');
+        break;
+      case 'A':
+        //Turn frequency into FStart
+        Fstart = serial_input_number;
+        serial_input_number = 0;
+        break;
+      case 'B':
+        //Turn frequency into FStop
+        Fstop = serial_input_number;
+        serial_input_number = 0;
+        break;
+      case 'C':
+        //Turn frequency into FStart and set DDS output to single frequency
+        Fstart = serial_input_number;
+        SetDDSFreq(Fstart);
+        serial_input_number = 0;
+        break;
+      case 'N':
+        // Set number of steps in the sweep
+        num_steps = serial_input_number;
+        serial_input_number = 0;
+        break;
+      case 'S':
+      case 's':
+        Perform_sweep();
+        break;
+      case '?':
+        // Report current configuration to PC
+        Serial.print("Start Freq:");
+        Serial.println(Fstart);
+        Serial.print("Stop Freq:");
+        Serial.println(Fstop);
+        Serial.print("Num Steps:");
+        Serial.println(num_steps);
+        break;
+    }
+    Serial.flush();
+  } 
 }
 
 void Perform_sweep() {
+  sweeping = 1;
   int FWD = 0;
   int REV = 0;
   int REV_nosig = 0;
   int FWD_nosig = 0;
   String dispFreq;
   String minString;
+  
   long Fstep = (Fstop - Fstart) / num_steps;
 
   clearChar();
@@ -541,7 +601,7 @@ void Perform_sweep() {
       }
     }
 
-    if (band == 0) {
+    if (pc == 1) {
       // Send current line back to PC over serial bus
       Serial.print(current_freq);
       Serial.print(",");
@@ -553,7 +613,7 @@ void Perform_sweep() {
     }
   }
   // Send "End" to PC to indicate end of sweep
-  if (band == 0) {
+  if (pc == 1) {
     Serial.println("End");
     Serial.print("Freq ");
     Serial.print(minFreq);
@@ -578,7 +638,11 @@ void Perform_sweep() {
   digitalWrite(13, HIGH);
   //delay(10);
   digitalWrite(13, LOW);
+
+  sweeping = 0;
+  can_re_sweep = 1;
 }
+
 
 void SetDDSFreq(long Freq_Hz) {
   // Calculate the DDS word - from AD9850 Datasheet
@@ -605,22 +669,6 @@ void send_byte(byte data_to_send) {
     digitalWrite(SCLK, HIGH);
     digitalWrite(SCLK, LOW);
   }
-}
-
-void showTitleScreen (String titleText) {
-  lcd.clear();
-  delay(LCD_DELAY);
-  lcd.setCursor(16, 0);
-  delay(LCD_DELAY);
-  lcd.autoscroll();
-  delay(LCD_DELAY);
-  // Scroll the title text:
-  for (int thisChar = 0; thisChar < titleText.length(); thisChar++) {
-    lcd.print(titleText[thisChar]);
-    delay(250);
-  }
-  // turn off automatic scrolling
-  lcd.noAutoscroll();
 }
 
 // function to get graph point height
