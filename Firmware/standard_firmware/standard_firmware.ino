@@ -40,33 +40,32 @@ LiquidCrystal lcd(8, 9, 15, 14, 16, 10);
 
 #define DEBUG (false) // Set to true to enable debugging console output
 
-
-long Fstart = 1000000;  // Start Frequency for sweep
-long Fstop = 30000000;  // Stop Frequency for sweep
+long Fstart = 1000000;      // Start Frequency for sweep
+long Fstop = 30000000;      // Stop Frequency for sweep
 unsigned long current_freq; // Temp variable used during sweep
-long serial_input_number; // Used to build number from serial stream
-long num_steps = 1001; // Number of steps to use in the sweep
-char incoming_char; // Character read from serial stream
+long serial_input_number;   // Used to build number from serial stream
+long num_steps = 1001;      // Number of steps to use in the sweep
+char incoming_char;         // Character read from serial stream
 
 // button presses
-byte mode_pressed = 0; 
+byte mode_pressed = 0;
 byte band_pressed = 0;
 byte reset_pressed = 0;
 
-int mode = 0; // menu/mode setting selected
+int mode = 0;      // menu/mode setting selected
 int main_menu = 1; // start in main menu
-byte pc = 0; // serial mode on/off
+byte pc = 0;       // serial mode on/off
 byte sweeping = 0; // actively sweeping
 byte can_re_sweep = 0;
 
 // Graph variables
 
-int plotValue[36]; // Values to be plotted along the vertical axis. There are 35 columns, but the counter includes 36 values
+int plotValue[36];     // Values to be plotted along the vertical axis. There are 35 columns, but the counter includes 36 values
 double storedVSWR[36]; // Raw VSWR values to be plotted
-int colGraph = 0; // Calculate horizontal pixel position within the 8-character graph
-int hChar = 0; // Determine which character position contains this data point
-int colChar = 0; // Column within that character gets this data point
-int oldColGraph = 99; // Bogus starting value will force initial calculation
+int colGraph = 0;      // Calculate horizontal pixel position within the 8-character graph
+int hChar = 0;         // Determine which character position contains this data point
+int colChar = 0;       // Column within that character gets this data point
+int oldColGraph = 99;  // Bogus starting value will force initial calculation
 int oldhChar = 0;
 boolean recalculate = true;
 
@@ -82,28 +81,27 @@ long minFreq;
 long maxFreq;
 
 byte grafChar[8] = { // this is the array to feed to custom HC44780. Initialize as empty (nothing is displayed.)
-  B00000,
-  B00000,
-  B00000,
-  B00000,
-  B00000,
-  B00000,
-  B00000,
-  B00000
-};
+    B00000,
+    B00000,
+    B00000,
+    B00000,
+    B00000,
+    B00000,
+    B00000,
+    B00000};
 
-void setup() {
+void setup()
+{
   // set up the LCD's number of columns and rows:
   lcd.begin(16, 2);
   delay(LCD_DELAY);
   // Print a message to the LCD.
-  lcd.setCursor(0,0);
+  lcd.setCursor(0, 0);
   lcd.print("Antenna Analyzer");
   lcd.setCursor(5, 1);
   delay(LCD_DELAY);
   lcd.print("KC9YJP");
   delay(2000);
-  
 
   // Configiure DDS control pins for digital output
   pinMode(FQ_UD, OUTPUT);
@@ -141,37 +139,44 @@ void setup_main_menu()
   lcd.print("BAND=select");
 }
 
-void loop() {
+void loop()
+{
   serial_check();
-  if (pc == 0) {
+  if (pc == 0)
+  {
     lcd.blink();
-  
-  if (main_menu == 1 and ((digitalRead(MODE) == LOW) or (mode_pressed == 1))) {
-    while (digitalRead(MODE) == LOW) {}
 
-    // Initialize variables for new band selection
-    totalVSWR = 0.0;
-    avgVSWR = 0.0;
-    readingsCount = 0;
-    minVSWR = 999.0;
-    maxVSWR = 1.0;
-    minDisplayedVSWR = 999.0;
-    maxDisplayedVSWR = 1.0;
-    minFreq = Fstart;
-    maxFreq = Fstart;
-    num_steps = 1000;
+    if (main_menu == 1 and ((digitalRead(MODE) == LOW) or (mode_pressed == 1)))
+    {
+      while (digitalRead(MODE) == LOW)
+      {
+      }
 
-    mode_pressed = 0;
-    mode += 1;
-    if (mode == 14) mode = 1;
-    switch (mode) {
+      // Initialize variables for new band selection
+      totalVSWR = 0.0;
+      avgVSWR = 0.0;
+      readingsCount = 0;
+      minVSWR = 999.0;
+      maxVSWR = 1.0;
+      minDisplayedVSWR = 999.0;
+      maxDisplayedVSWR = 1.0;
+      minFreq = Fstart;
+      maxFreq = Fstart;
+      num_steps = 1000;
+
+      mode_pressed = 0;
+      mode += 1;
+      if (mode == 14)
+        mode = 1;
+      switch (mode)
+      {
       case 1:
         lcd.clear();
         delay(LCD_DELAY);
         lcd.setCursor(0, 0);
         delay(LCD_DELAY);
         lcd.print("Specify Range");
-        
+
         break;
 
       case 2:
@@ -179,8 +184,8 @@ void loop() {
         delay(LCD_DELAY);
         lcd.setCursor(0, 0);
         delay(LCD_DELAY);
-        lcd.print("todo 2");
-        
+        lcd.print("Tune Frequency");
+
         break;
       case 3:
         // Full sweep 1-30 MHz
@@ -199,7 +204,7 @@ void loop() {
         delay(LCD_DELAY);
         lcd.print("160m");
         Fstart = 1800000;
-        Fstop =  2000000;
+        Fstop = 2000000;
         break;
       case 5:
         // 80m
@@ -208,7 +213,7 @@ void loop() {
         delay(LCD_DELAY);
         lcd.print("80m");
         Fstart = 3500000;
-        Fstop =  4000000;
+        Fstop = 4000000;
         break;
       case 6:
         // 60m
@@ -217,7 +222,7 @@ void loop() {
         delay(LCD_DELAY);
         lcd.print("60m");
         Fstart = 5330000;
-        Fstop =  5500000;
+        Fstop = 5500000;
         break;
       case 7:
         // 40m
@@ -226,7 +231,7 @@ void loop() {
         delay(LCD_DELAY);
         lcd.print("40m");
         Fstart = 7000000;
-        Fstop =  7300000;
+        Fstop = 7300000;
         break;
       case 8:
         // 30m
@@ -235,7 +240,7 @@ void loop() {
         delay(LCD_DELAY);
         lcd.print("30m");
         Fstart = 10100000;
-        Fstop =  10150000;
+        Fstop = 10150000;
         break;
       case 9:
         // 20m
@@ -244,7 +249,7 @@ void loop() {
         delay(LCD_DELAY);
         lcd.print("20m");
         Fstart = 14000000;
-        Fstop =  14350000;
+        Fstop = 14350000;
         break;
       case 10:
         // 17m
@@ -253,7 +258,7 @@ void loop() {
         delay(LCD_DELAY);
         lcd.print("17m");
         Fstart = 18000000;
-        Fstop =  18170000;
+        Fstop = 18170000;
         break;
       case 11:
         // 15m
@@ -262,7 +267,7 @@ void loop() {
         delay(LCD_DELAY);
         lcd.print("15m");
         Fstart = 21000000;
-        Fstop =  21500000;
+        Fstop = 21500000;
         break;
       case 12:
         // 12m
@@ -271,7 +276,7 @@ void loop() {
         delay(LCD_DELAY);
         lcd.print("12m");
         Fstart = 24890000;
-        Fstop =  25000000;
+        Fstop = 25000000;
         break;
       case 13:
         // 10m
@@ -280,113 +285,171 @@ void loop() {
         delay(LCD_DELAY);
         lcd.print("10m");
         Fstart = 28000000;
-        Fstop =  29700000;
+        Fstop = 29700000;
         break;
-
-    }
-
-  }
-
-
-  if (main_menu == 1 and ((digitalRead(BAND) == LOW) or (band_pressed == 1))) {  
-    while (digitalRead(BAND) == LOW) {}  
-    main_menu = 0;
-    lcd.setCursor(0,1);
-    lcd.print("...");
-    
-    if (mode == 1) {
-      adhoc_frequency();
       }
-    else if (mode == 2)
-    {}
-    else {
-    Perform_sweep();
     }
-  }
 
-  if (sweeping == 0 and can_re_sweep == 1 and ((digitalRead(BAND) == LOW) or (band_pressed == 1))) {  
-    while (digitalRead(BAND) == LOW) {}
-    Perform_sweep();
-  }
-  if (sweeping == 0 and can_re_sweep == 1 and ((digitalRead(MODE) == LOW) or (mode_pressed == 1))) {  
-    while (digitalRead(MODE) == LOW) {}
-    
-    can_re_sweep = 0;
-    setup_main_menu();
-    
-  }
+    if (main_menu == 1 and ((digitalRead(BAND) == LOW) or (band_pressed == 1)))
+    {
+      while (digitalRead(BAND) == LOW)
+      {
+      }
+      main_menu = 0;
+      lcd.setCursor(0, 1);
+      lcd.print("...");
 
-  
+      if (mode == 1)
+      {
+        adhoc_frequency();
+      }
+      else if (mode == 2)
+      {
+        tune_frequency();
+      }
+      else
+      {
+        Perform_sweep();
+      }
+    }
+
+    if (sweeping == 0 and can_re_sweep == 1 and ((digitalRead(BAND) == LOW) or (band_pressed == 1)))
+    {
+      while (digitalRead(BAND) == LOW)
+      {
+      }
+      Perform_sweep();
+    }
+    if (sweeping == 0 and can_re_sweep == 1 and ((digitalRead(MODE) == LOW) or (mode_pressed == 1)))
+    {
+      while (digitalRead(MODE) == LOW)
+      {
+      }
+
+      can_re_sweep = 0;
+      setup_main_menu();
+    }
   }
 }
 
-void adhoc_frequency() {
-      //Initialize variables for new mode selection
-    totalVSWR = 0.0;
-    avgVSWR = 0.0;
-    readingsCount = 0;
-    minVSWR = 999.0;
-    maxVSWR = 1.0;
-    minDisplayedVSWR = 999.0;
-    maxDisplayedVSWR = 1.0;
+void tune_frequency()
+{
+  //Initialize variables for new mode selection
+  totalVSWR = 0.0;
+  avgVSWR = 0.0;
+  readingsCount = 0;
+  minVSWR = 999.0;
+  maxVSWR = 1.0;
+  minDisplayedVSWR = 999.0;
+  maxDisplayedVSWR = 1.0;
 
-    //display switch use help
-    lcd.clear();
-    lcd.setCursor(0, 1);
-    delay(LCD_DELAY);
-    lcd.print("BAND +1,MODE nxt");
-    
-    //get frequency start
-    lcd.setCursor(0, 0);
-    delay(LCD_DELAY);
-    lcd.print("FSTART=");
-    Fstart = getNumber(7, 0, 8);
-    
-    // get frequence stop
-    lcd.setCursor(0, 0);
-    delay(LCD_DELAY);
-    lcd.print("FSTOP =");
-    Fstop = getNumber(7, 0, 8);
-    if (Fstop < Fstart) {
-      Fstop = Fstart;  //stop frequency must be not less than start frequency
-    }
-    
-    // get number of steps
-    lcd.setCursor(0, 0);
-    delay(LCD_DELAY);
-    lcd.print("NSTEPS=");
-    num_steps = getNumber(7, 0, 4);
-    if (num_steps < 1) {
-      num_steps = 1;  //num_steps must be greater than 0
-    }
-    
-    // display from and to frequencies
-    lcd.clear();
-    lcd.setCursor(0, 0);
-    delay(LCD_DELAY);
-    String dispFreq = String(Fstart / 1000000.0, 1);
-    lcd.print(dispFreq);
-    lcd.print("-");
-    dispFreq = String(Fstop / 1000000.0, 1);
-    lcd.print(dispFreq);
+  //display switch use help
+  lcd.clear();
+  lcd.setCursor(0, 1);
+  delay(LCD_DELAY);
+  lcd.print("BAND +1,MODE nxt");
 
-    // now sweep with the input parameters
-    if DEBUG {
-      Serial.print("Fstart=");
-      Serial.println(Fstart);
-      Serial.print("Fstop=");
-      Serial.println(Fstop);
-      Serial.print("num_steps=");
-      Serial.println(num_steps);
-    }
-    
-    Perform_sweep();
+  //get frequency start
+  lcd.setCursor(0, 0);
+  delay(LCD_DELAY);
+  lcd.print("FREQ=");
+  Fstart = getNumber(7, 0, 8);
+  Fstop = Fstart;
+  num_steps = 100 * 60; // run for 1 minute
 
+  // display from and to frequencies
+  lcd.clear();
+  lcd.setCursor(0, 0);
+  delay(LCD_DELAY);
+  String dispFreq = String(Fstart / 1000000.0, 1);
+  lcd.print(dispFreq);
+
+  // now sweep with the input parameters
+  if DEBUG
+  {
+    Serial.print("Fstart=");
+    Serial.println(Fstart);
+    Serial.print("Fstop=");
+    Serial.println(Fstop);
+    Serial.print("num_steps=");
+    Serial.println(num_steps);
   }
 
-void serial_check () {
-    //Check for character
-  if (Serial.available() > 0) {
+  Perform_sweep();
+}
+
+void adhoc_frequency()
+{
+  //Initialize variables for new mode selection
+  totalVSWR = 0.0;
+  avgVSWR = 0.0;
+  readingsCount = 0;
+  minVSWR = 999.0;
+  maxVSWR = 1.0;
+  minDisplayedVSWR = 999.0;
+  maxDisplayedVSWR = 1.0;
+
+  //display switch use help
+  lcd.clear();
+  lcd.setCursor(0, 1);
+  delay(LCD_DELAY);
+  lcd.print("BAND +1,MODE nxt");
+
+  //get frequency start
+  lcd.setCursor(0, 0);
+  delay(LCD_DELAY);
+  lcd.print("FSTART=");
+  Fstart = getNumber(7, 0, 8);
+
+  // get frequence stop
+  lcd.setCursor(0, 0);
+  delay(LCD_DELAY);
+  lcd.print("FSTOP =");
+  Fstop = getNumber(7, 0, 8);
+  if (Fstop < Fstart)
+  {
+    Fstop = Fstart; //stop frequency must be not less than start frequency
+  }
+
+  // get number of steps
+  lcd.setCursor(0, 0);
+  delay(LCD_DELAY);
+  lcd.print("NSTEPS=");
+  num_steps = getNumber(7, 0, 4);
+  if (num_steps < 1)
+  {
+    num_steps = 1; //num_steps must be greater than 0
+  }
+
+  // display from and to frequencies
+  lcd.clear();
+  lcd.setCursor(0, 0);
+  delay(LCD_DELAY);
+  String dispFreq = String(Fstart / 1000000.0, 1);
+  lcd.print(dispFreq);
+  lcd.print("-");
+  dispFreq = String(Fstop / 1000000.0, 1);
+  lcd.print(dispFreq);
+
+  // now sweep with the input parameters
+  if DEBUG
+  {
+    Serial.print("Fstart=");
+    Serial.println(Fstart);
+    Serial.print("Fstop=");
+    Serial.println(Fstop);
+    Serial.print("num_steps=");
+    Serial.println(num_steps);
+  }
+
+  Perform_sweep();
+}
+
+void serial_check()
+{
+  //Check for character
+  if (Serial.available() > 0)
+  {
     pc = 1;
     mode = 0;
     main_menu = 0;
@@ -395,59 +458,61 @@ void serial_check () {
     delay(LCD_DELAY);
     lcd.print("PC");
     incoming_char = Serial.read();
-    switch (incoming_char) {
-      case '0':
-      case '1':
-      case '2':
-      case '3':
-      case '4':
-      case '5':
-      case '6':
-      case '7':
-      case '8':
-      case '9':
-        serial_input_number = serial_input_number * 10 + (incoming_char - '0');
-        break;
-      case 'A':
-        //Turn frequency into FStart
-        Fstart = serial_input_number;
-        serial_input_number = 0;
-        break;
-      case 'B':
-        //Turn frequency into FStop
-        Fstop = serial_input_number;
-        serial_input_number = 0;
-        break;
-      case 'C':
-        //Turn frequency into FStart and set DDS output to single frequency
-        Fstart = serial_input_number;
-        SetDDSFreq(Fstart);
-        serial_input_number = 0;
-        break;
-      case 'N':
-        // Set number of steps in the sweep
-        num_steps = serial_input_number;
-        serial_input_number = 0;
-        break;
-      case 'S':
-      case 's':
-        Perform_sweep();
-        break;
-      case '?':
-        // Report current configuration to PC
-        Serial.print("Start Freq:");
-        Serial.println(Fstart);
-        Serial.print("Stop Freq:");
-        Serial.println(Fstop);
-        Serial.print("Num Steps:");
-        Serial.println(num_steps);
-        break;
+    switch (incoming_char)
+    {
+    case '0':
+    case '1':
+    case '2':
+    case '3':
+    case '4':
+    case '5':
+    case '6':
+    case '7':
+    case '8':
+    case '9':
+      serial_input_number = serial_input_number * 10 + (incoming_char - '0');
+      break;
+    case 'A':
+      //Turn frequency into FStart
+      Fstart = serial_input_number;
+      serial_input_number = 0;
+      break;
+    case 'B':
+      //Turn frequency into FStop
+      Fstop = serial_input_number;
+      serial_input_number = 0;
+      break;
+    case 'C':
+      //Turn frequency into FStart and set DDS output to single frequency
+      Fstart = serial_input_number;
+      SetDDSFreq(Fstart);
+      serial_input_number = 0;
+      break;
+    case 'N':
+      // Set number of steps in the sweep
+      num_steps = serial_input_number;
+      serial_input_number = 0;
+      break;
+    case 'S':
+    case 's':
+      Perform_sweep();
+      break;
+    case '?':
+      // Report current configuration to PC
+      Serial.print("Start Freq:");
+      Serial.println(Fstart);
+      Serial.print("Stop Freq:");
+      Serial.println(Fstop);
+      Serial.print("Num Steps:");
+      Serial.println(num_steps);
+      break;
     }
     Serial.flush();
-  } 
+  }
 }
 
-void Perform_sweep() {
+void Perform_sweep()
+{
   sweeping = 1;
   int FWD = 0;
   int REV = 0;
@@ -455,7 +520,7 @@ void Perform_sweep() {
   int FWD_nosig = 0;
   String dispFreq;
   String minString;
-  
+
   long Fstep = (Fstop - Fstart) / num_steps;
 
   clearChar();
@@ -470,26 +535,31 @@ void Perform_sweep() {
   delay(100);
 
   // Start loop
-  for (long i = 0; i <= num_steps; i++) {
+  for (long i = 0; i <= num_steps; i++)
+  {
     // Calculate current frequency
     current_freq = Fstart + i * Fstep;
 
     // Set DDS to current frequency
     SetDDSFreq(current_freq);
     // Wait a little for settling
-    if (digitalRead(BAND) == LOW) {
+    if (digitalRead(BAND) == LOW)
+    {
       band_pressed = 1;
-      i = num_steps;  // Force the sweep to end when user presses the BAND button
+      i = num_steps; // Force the sweep to end when user presses the BAND button
     }
     delay(10);
     // Read the forawrd and reverse voltages
     REV = analogRead(A0);
     FWD = analogRead(A1);
 
-    if (REV >= FWD) {
+    if (REV >= FWD)
+    {
       // To avoid a divide by zero or negative VSWR then set to max 999
       VSWR = 999;
-    } else {
+    }
+    else
+    {
       // Calculate VSWR
       VSWR = ((double)FWD + (double)REV) / ((double)FWD - (double)REV);
     }
@@ -511,84 +581,98 @@ void Perform_sweep() {
     readingsCount++;
 
     colGraph = (i * 35) / num_steps; // Calculate horizontal pixel position within the entire 7-character graph (35 total pixels wide)
-    if (oldColGraph != colGraph) {
+    if (oldColGraph != colGraph)
+    {
       oldColGraph = colGraph;
-      avgVSWR = totalVSWR / (double)readingsCount;  // Get the average VSWR since last plotted value
+      avgVSWR = totalVSWR / (double)readingsCount; // Get the average VSWR since last plotted value
       storedVSWR[colGraph] = avgVSWR;
-      if (avgVSWR < minDisplayedVSWR) {
+      if (avgVSWR < minDisplayedVSWR)
+      {
         minDisplayedVSWR = avgVSWR;
         recalculate = true;
       }
-      if (avgVSWR > maxDisplayedVSWR) {
+      if (avgVSWR > maxDisplayedVSWR)
+      {
         maxDisplayedVSWR = avgVSWR;
         recalculate = true;
       }
-      
+
       // hwd
       if (maxDisplayedVSWR > 3)
       {
         maxDisplayedVSWR = 3;
       }
-      
-      if (DEBUG) {
-        Serial.print(colGraph);  // DEBUG
-        Serial.print("\t");  // DEBUG
-        Serial.print(minDisplayedVSWR);  // DEBUG
-        Serial.print("\t");  // DEBUG
-        Serial.print(avgVSWR);  // DEBUG
-        Serial.print("\t");  // DEBUG
-        Serial.print(maxDisplayedVSWR);  // DEBUG
-        Serial.print("\t");  // DEBUG
-        Serial.println(recalculate);  // DEBUG
+
+      if (DEBUG)
+      {
+        Serial.print(colGraph);         // DEBUG
+        Serial.print("\t");             // DEBUG
+        Serial.print(minDisplayedVSWR); // DEBUG
+        Serial.print("\t");             // DEBUG
+        Serial.print(avgVSWR);          // DEBUG
+        Serial.print("\t");             // DEBUG
+        Serial.print(maxDisplayedVSWR); // DEBUG
+        Serial.print("\t");             // DEBUG
+        Serial.println(recalculate);    // DEBUG
       }
       // Calculate the vertical pixel value for this reading. If recalculate is true, recalculate the historical values, too, as min or max has changed
       plotValue[colGraph] = getHeight(avgVSWR, minDisplayedVSWR, maxDisplayedVSWR); // Value to be plotted along the vertical axis
-      if (recalculate) {
-        if (DEBUG) {
+      if (recalculate)
+      {
+        if (DEBUG)
+        {
           Serial.print("====== Recalculating Begin ======\n");
         }
-        for (int j = 0; j <= colGraph; j++) {
+        for (int j = 0; j <= colGraph; j++)
+        {
           plotValue[j] = getHeight(storedVSWR[j], minDisplayedVSWR, maxDisplayedVSWR); // Recalculate values to be plotted along the vertical axis
-          if (DEBUG) {
-            Serial.print(j);  // DEBUG
-            Serial.print("\t");  // DEBUG
-            Serial.print(minDisplayedVSWR);  // DEBUG
-            Serial.print("\t");  // DEBUG
-            Serial.print(storedVSWR[j]);  // DEBUG
-            Serial.print("\t");  // DEBUG
-            Serial.print(maxDisplayedVSWR);  // DEBUG
-            Serial.print("\t");  // DEBUG
-            Serial.println(plotValue[j]);  // DEBUG
+          if (DEBUG)
+          {
+            Serial.print(j);                // DEBUG
+            Serial.print("\t");             // DEBUG
+            Serial.print(minDisplayedVSWR); // DEBUG
+            Serial.print("\t");             // DEBUG
+            Serial.print(storedVSWR[j]);    // DEBUG
+            Serial.print("\t");             // DEBUG
+            Serial.print(maxDisplayedVSWR); // DEBUG
+            Serial.print("\t");             // DEBUG
+            Serial.println(plotValue[j]);   // DEBUG
           }
         }
-        if (DEBUG) {
+        if (DEBUG)
+        {
           Serial.print("====== Recalculating End ======\n");
         }
       }
 
-      totalVSWR = 0.0;  // Reset values for next plotted average
+      totalVSWR = 0.0; // Reset values for next plotted average
       readingsCount = 0;
 
-      if (recalculate) {
-        for (int j = 0; j <= colGraph; j++) {
+      if (recalculate)
+      {
+        for (int j = 0; j <= colGraph; j++)
+        {
           hChar = j / 5; // Determine which character position contains this data point
-          if (hChar != oldhChar) {
+          if (hChar != oldhChar)
+          {
             oldhChar = hChar;
             clearChar();
           }
-          colChar = j % 5;  // Determine which column within that character gets this data point
+          colChar = j % 5; // Determine which column within that character gets this data point
 
           createPoint(plotValue[j], colChar, hChar);
         }
         recalculate = false;
       }
-      else {
+      else
+      {
         hChar = colGraph / 5; // Determine which character position contains this data point
-        if (hChar != oldhChar) {
+        if (hChar != oldhChar)
+        {
           oldhChar = hChar;
           clearChar();
         }
-        colChar = colGraph % 5;  // Determine which column within that character gets this data point
+        colChar = colGraph % 5; // Determine which column within that character gets this data point
 
         createPoint(plotValue[colGraph], colChar, hChar);
       }
@@ -596,12 +680,14 @@ void Perform_sweep() {
       lcd.home();
       lcd.setCursor(9, 0);
 
-      for (byte j = 0; j < 7; j++) {
+      for (byte j = 0; j < 7; j++)
+      {
         lcd.write(byte(j));
       }
     }
 
-    if (pc == 1) {
+    if (pc == 1)
+    {
       // Send current line back to PC over serial bus
       Serial.print(current_freq);
       Serial.print(",");
@@ -613,7 +699,8 @@ void Perform_sweep() {
     }
   }
   // Send "End" to PC to indicate end of sweep
-  if (pc == 1) {
+  if (pc == 1)
+  {
     Serial.println("End");
     Serial.print("Freq ");
     Serial.print(minFreq);
@@ -643,12 +730,13 @@ void Perform_sweep() {
   can_re_sweep = 1;
 }
 
-
-void SetDDSFreq(long Freq_Hz) {
+void SetDDSFreq(long Freq_Hz)
+{
   // Calculate the DDS word - from AD9850 Datasheet
   int32_t f = Freq_Hz * 4294967295 / 125000000;
   // Send one byte at a time
-  for (int b = 0; b < 4; b++, f >>= 8) {
+  for (int b = 0; b < 4; b++, f >>= 8)
+  {
     //    SPI.transfer(f & 0xFF);
     send_byte(f & 0xFF);
   }
@@ -660,9 +748,11 @@ void SetDDSFreq(long Freq_Hz) {
   digitalWrite(FQ_UD, LOW);
 }
 
-void send_byte(byte data_to_send) {
+void send_byte(byte data_to_send)
+{
   // Bit bang the byte over the SPI bus
-  for (int i = 0; i < 8; i++, data_to_send >>= 1) {
+  for (int i = 0; i < 8; i++, data_to_send >>= 1)
+  {
     // Set Data bit on output pin
     digitalWrite(SDAT, data_to_send & 0x01);
     // Strobe the clock pin
@@ -672,29 +762,37 @@ void send_byte(byte data_to_send) {
 }
 
 // function to get graph point height
-int getHeight ( float vswrNow , float minVSWR , float maxVSWR ) { // takes measurements , minimum and maximum VSWR and reurns a value from 0 to 7
-  if (vswrNow <= minVSWR) return 0;  // lowest graph point
-  if (vswrNow >= maxVSWR) return 7; // highest graph point
-  if (vswrNow > minVSWR & vswrNow < maxVSWR) {
+int getHeight(float vswrNow, float minVSWR, float maxVSWR)
+{ // takes measurements , minimum and maximum VSWR and reurns a value from 0 to 7
+  if (vswrNow <= minVSWR)
+    return 0; // lowest graph point
+  if (vswrNow >= maxVSWR)
+    return 7; // highest graph point
+  if (vswrNow > minVSWR & vswrNow < maxVSWR)
+  {
     return (vswrNow - minVSWR) * 8 / (maxVSWR - minVSWR); // here is the way values from 1 to 6 are calculated
   }
 }
 
 // function to make graph point in hc 77480 special characters
-void createPoint (int row, int col, int hcchar) { // takes as input the row(height) , the column of custom char that it must be set, and custom character memory position at LCD.
+void createPoint(int row, int col, int hcchar)
+{                // takes as input the row(height) , the column of custom char that it must be set, and custom character memory position at LCD.
   row = 7 - row; // lcd character 0 is top left so invert coordinates
   col = 4 - col; // lcd character 0 is top left so invert coordinates
-  while (row < 8 ) {
-    bitSet(grafChar[row], col ) ; // this loop sets to 1 the bit of the needed pixel and all below that at grafChar bitarray so as to display a bar
+  while (row < 8)
+  {
+    bitSet(grafChar[row], col); // this loop sets to 1 the bit of the needed pixel and all below that at grafChar bitarray so as to display a bar
     row++;
   }
   lcd.createChar(hcchar, grafChar); // write to custom character the contents of grafChar array.
 }
 
 // function to set clear custom graph chararacter matrix (not an independent function, just to make loop code neater
-void clearChar() { // a quick way to set all grafChar bits back to zero so as to creat a new one.
+void clearChar()
+{ // a quick way to set all grafChar bits back to zero so as to creat a new one.
   int countj = 0;
-  while (countj < 8) {
+  while (countj < 8)
+  {
     grafChar[countj] = B00000;
     countj++;
   }
@@ -702,9 +800,11 @@ void clearChar() { // a quick way to set all grafChar bits back to zero so as to
 }
 
 // function to clear range of LCD custom characters. Needs graph char to be set to nothing first (clearchar)
-void clearCustomChar (int first , int second) { // clear the custom character LCD memory at the range given at function input.
+void clearCustomChar(int first, int second)
+{ // clear the custom character LCD memory at the range given at function input.
   int counter = first;
-  while (counter < second + 1) {
+  while (counter < second + 1)
+  {
     lcd.createChar(counter, grafChar);
     counter++;
   }
@@ -719,44 +819,57 @@ void clearCustomChar (int first , int second) { // clear the custom character LC
 // rowStart = row to start displaying the number
 // ndigits = number of digits in the number
 //returns a long value
-long getNumber(int colStart, int rowStart, int ndigits) {
-  long returnNumber = 0;  //number to be returned
-  int showDigit = colStart;  //current digit to display
-  int inloop = 1;  //while loop exit value
-  int cdigit = 0;  //current digit to be dieplayed and incremented
+long getNumber(int colStart, int rowStart, int ndigits)
+{
+  long returnNumber = 0;    //number to be returned
+  int showDigit = colStart; //current digit to display
+  int inloop = 1;           //while loop exit value
+  int cdigit = 0;           //current digit to be dieplayed and incremented
   // initialize display
   lcd.setCursor(colStart, rowStart);
   lcd.print("         ");
 
-  for (int idigit = 0; idigit < ndigits; idigit++) {  //loop for all digits
-    inloop = 1;  //initialize while exit value
-    cdigit = 0;  //current digit to be displayed and incremented
+  for (int idigit = 0; idigit < ndigits; idigit++)
+  {             //loop for all digits
+    inloop = 1; //initialize while exit value
+    cdigit = 0; //current digit to be displayed and incremented
     lcd.setCursor(showDigit, rowStart);
     lcd.noCursor();
     lcd.noBlink();
     lcd.print("0");
     // get a digit and display
-    while (inloop == 1) {
-      if (digitalRead(MODE) == LOW) {
-        while (digitalRead(MODE) == LOW) { delay(50); }  //debounce
+    while (inloop == 1)
+    {
+      if (digitalRead(MODE) == LOW)
+      {
+        while (digitalRead(MODE) == LOW)
+        {
+          delay(50);
+        } //debounce
         // MODE pressed so go to next digit
-        inloop = 0;  //exit the while loop
+        inloop = 0; //exit the while loop
         lcd.setCursor(showDigit, rowStart);
         lcd.noCursor();
         lcd.noBlink();
         lcd.print(cdigit);
-        if (idigit < ndigits-1) {  //increment digit if not the last time
+        if (idigit < ndigits - 1)
+        { //increment digit if not the last time
           returnNumber = returnNumber * 10;
         }
         showDigit++;
-        if (showDigit == colStart+2 && ndigits == 8) {  //print decimal point for MHz
+        if (showDigit == colStart + 2 && ndigits == 8)
+        { //print decimal point for MHz
           lcd.print(".");
           showDigit++;
         }
-        lcd.print("0");  //print the initial value for the next digit
+        lcd.print("0"); //print the initial value for the next digit
       }
-      if (digitalRead(BAND) == LOW) {
-        while (digitalRead(BAND) == LOW) { delay(50); } //debounce
+      if (digitalRead(BAND) == LOW)
+      {
+        while (digitalRead(BAND) == LOW)
+        {
+          delay(50);
+        } //debounce
         // BAND pressed, to increment digit
         returnNumber++;
         cdigit++;
